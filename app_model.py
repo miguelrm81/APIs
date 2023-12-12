@@ -18,6 +18,17 @@ def hello():
 
 # 1. Endpoint que devuelva la predicción de los nuevos datos enviados mediante argumentos en la llamada
 @app.route('/v1/predict', methods=['GET'])
+@app.route('/predict', methods=['GET'])
+def predict():
+    model = pickle.load(open('data/advertising_model','rb'))
+    data = request.get_json()
+
+    input_values = data['data'][0]
+    tv, radio, newspaper = map(int, input_values)
+
+    prediction = model.predict([[tv, radio, newspaper]])
+    return jsonify({'prediction': round(prediction[0], 2)})
+"""
 def predict():
     conn = sqlite3.connect('data/db.db')
     df = pd.read_sql_query("SELECT * FROM advertising", conn)
@@ -34,23 +45,24 @@ def predict():
     else:
         prediction = model.predict([[int(tv),int(radio),int(newspaper)]])
         return "The prediction of sales investing that amount of money in TV, radio and newspaper is: " + str(round(prediction[0],2)) + 'k €'
-
+"""
 # 2 End point para crear nuevos registros 
 
 @app.route('/v2/ingest_data', methods=['POST'])
-
 def ingest_data():
-    try:
-        conn = sqlite3.connect('data/db.db')
-        data = request.json
-        print("datos recibidos:", data) 
-        query = "INSERT INTO Advertising (tv, radio, newpaper, sales) VALUES (?, ?, ?,?)"
-        conn.execute(query, (data['tv'], data['radio'], data['newpaper'], data['sales']))
-        conn.commit()
-        conn.close()
-        return jsonify({'message': 'Datos actualizados'})
-    except Exception as e:
-        print("Error al conectar con la base de datos:", str(e))
+    data = request.get_json().get('data', [])
+
+    for row in data:
+        tv, radio, newpaper, sales = row
+        query = "INSERT INTO Advertising (tv, radio, newpaper, sales) VALUES (?, ?, ?, ?)"
+        connection = sqlite3.connect('data/db.db')
+        crsr = connection.cursor()
+        crsr.execute(query, (tv, radio, newpaper, sales))
+        connection.commit()
+        connection.close()
+
+    return jsonify({'message': 'Datos ingresados correctamente'})
+
 
 # 3. Posibilidad de reentrenar de nuevo el modelo con los posibles nuevos registros que se recojan. (/v2/retrain)
 
@@ -70,7 +82,7 @@ def retrain_model():
 
     with open('data/advertising_model', 'wb') as archivo_salida :
         pickle.dump(model, archivo_salida)
-    return jsonify({'message': 'Modelo actualizado correctamente'})
+    return jsonify({'message': 'Modelo reentrenado correctamente.'})
 
 
 
