@@ -17,8 +17,9 @@ def hello():
     return "Bienvenido a mi API del modelo advertising"
 
 # 1. Endpoint que devuelva la predicción de los nuevos datos enviados mediante argumentos en la llamada
-@app.route('/v1/predict', methods=['GET'])
 @app.route('/predict', methods=['GET'])
+
+
 def predict():
     model = pickle.load(open('data/advertising_model','rb'))
     data = request.get_json()
@@ -28,27 +29,10 @@ def predict():
 
     prediction = model.predict([[tv, radio, newspaper]])
     return jsonify({'prediction': round(prediction[0], 2)})
-"""
-def predict():
-    conn = sqlite3.connect('data/db.db')
-    df = pd.read_sql_query("SELECT * FROM advertising", conn)
-    conn.close()
-    
-    model = pickle.load(open('data/advertising_model','rb'))
 
-    tv = request.args.get('tv', None)
-    radio = request.args.get('radio', None)
-    newspaper = request.args.get('newspaper', None)
-
-    if tv is None or radio is None or newspaper is None:
-        return "Missing args, the input values are needed to predict"
-    else:
-        prediction = model.predict([[int(tv),int(radio),int(newspaper)]])
-        return "The prediction of sales investing that amount of money in TV, radio and newspaper is: " + str(round(prediction[0],2)) + 'k €'
-"""
 # 2 End point para crear nuevos registros 
 
-@app.route('/v2/ingest_data', methods=['POST'])
+@app.route('/ingest', methods=['POST'])
 def ingest_data():
     data = request.get_json().get('data', [])
 
@@ -66,7 +50,7 @@ def ingest_data():
 
 # 3. Posibilidad de reentrenar de nuevo el modelo con los posibles nuevos registros que se recojan. (/v2/retrain)
 
-@app.route('/v2/retrain', methods=['POST'])
+@app.route('/retrain', methods=['POST'])
 
 def retrain_model():
     
@@ -87,4 +71,5 @@ def retrain_model():
 
 
 
-app.run()
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
